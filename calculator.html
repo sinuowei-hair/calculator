@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 关键：适配手机屏幕 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>手机计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        /* 计算器容器 */
+        .calculator {
+            width: 100%;
+            max-width: 400px;
+            background-color: #1c1c1c;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 显示区域（核心：展示输入和核对信息） */
+        .display {
+            background-color: #1c1c1c;
+            color: white;
+            text-align: right;
+            padding: 20px 10px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        /* 输入的表达式（核对用） */
+        .input-expression {
+            font-size: 18px;
+            color: #a0a0a0;
+            min-height: 24px;
+        }
+
+        /* 结果/当前输入 */
+        .result {
+            font-size: 40px;
+            font-weight: 300;
+            line-height: 1.2;
+        }
+
+        /* 按钮区域 */
+        .buttons {
+            display: grid;
+            /* 4列布局，适配手机 */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            width: 100%;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.1s ease;
+            color: white;
+        }
+
+        /* 触摸反馈 */
+        .btn:active {
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+
+        /* 按钮颜色区分 */
+        .btn-grey {
+            background-color: #505050;
+        }
+
+        .btn-orange {
+            background-color: #ff9500;
+        }
+
+        .btn-dark-grey {
+            background-color: #333333;
+        }
+
+        /* 0号按钮占两列 */
+        .btn-zero {
+            grid-column: span 2;
+            border-radius: 35px; /* 圆角适配 */
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <!-- 显示区域：展示输入的表达式（核对）和结果 -->
+        <div class="display">
+            <div class="input-expression" id="inputExpression"></div>
+            <div class="result" id="result">0</div>
+        </div>
+        
+        <!-- 按钮区域 -->
+        <div class="buttons">
+            <button class="btn btn-grey" data-key="C">C</button>
+            <button class="btn btn-grey" data-key="←">←</button>
+            <button class="btn btn-grey" data-key="%">%</button>
+            <button class="btn btn-orange" data-key="/">÷</button>
+            
+            <button class="btn btn-dark-grey" data-key="7">7</button>
+            <button class="btn btn-dark-grey" data-key="8">8</button>
+            <button class="btn btn-dark-grey" data-key="9">9</button>
+            <button class="btn btn-orange" data-key="*">×</button>
+            
+            <button class="btn btn-dark-grey" data-key="4">4</button>
+            <button class="btn btn-dark-grey" data-key="5">5</button>
+            <button class="btn btn-dark-grey" data-key="6">6</button>
+            <button class="btn btn-orange" data-key="-">-</button>
+            
+            <button class="btn btn-dark-grey" data-key="1">1</button>
+            <button class="btn btn-dark-grey" data-key="2">2</button>
+            <button class="btn btn-dark-grey" data-key="3">3</button>
+            <button class="btn btn-orange" data-key="+">+</button>
+            
+            <button class="btn btn-dark-grey btn-zero" data-key="0">0</button>
+            <button class="btn btn-dark-grey" data-key=".">.</button>
+            <button class="btn btn-orange" data-key="=">=</button>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const inputExpressionEl = document.getElementById('inputExpression');
+        const resultEl = document.getElementById('result');
+        let currentExpression = ''; // 存储当前输入的表达式
+
+        // 绑定所有按钮点击事件
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const key = this.getAttribute('data-key');
+                handleKeyPress(key);
+            });
+        });
+
+        /**
+         * 处理按键/按钮点击
+         * @param {string} key - 点击的按钮值
+         */
+        function handleKeyPress(key) {
+            switch(key) {
+                case 'C':
+                    // 清空所有内容
+                    currentExpression = '';
+                    inputExpressionEl.textContent = '';
+                    resultEl.textContent = '0';
+                    break;
+                
+                case '←':
+                    // 退格：删除最后一个字符
+                    currentExpression = currentExpression.slice(0, -1);
+                    resultEl.textContent = currentExpression || '0';
+                    break;
+                
+                case '=':
+                    // 计算结果，核心：显示输入的表达式供核对
+                    if (!currentExpression) return;
+                    
+                    // 格式化表达式（把×换成*，适配eval计算）
+                    const calcExpression = currentExpression.replace(/×/g, '*').replace(/÷/g, '/');
+                    
+                    // 显示输入的表达式（核对用）
+                    inputExpressionEl.textContent = `计算: ${currentExpression}`;
+                    
+                    try {
+                        // 计算结果（保留合理小数位数）
+                        let result = eval(calcExpression);
+                        // 处理小数，避免无限小数
+                        result = Number.isInteger(result) ? result : result.toFixed(6).replace(/\.?0*$/, '');
+                        resultEl.textContent = result;
+                        // 保留结果，方便继续计算
+                        currentExpression = result.toString();
+                    } catch (error) {
+                        if (error.message.includes('division by zero')) {
+                            resultEl.textContent = '除数不能为0';
+                        } else {
+                            resultEl.textContent = '输入错误';
+                        }
+                        // 3秒后重置显示
+                        setTimeout(() => {
+                            currentExpression = '';
+                            inputExpressionEl.textContent = '';
+                            resultEl.textContent = '0';
+                        }, 1500);
+                    }
+                    break;
+                
+                case '%':
+                    // 百分比计算
+                    if (currentExpression) {
+                        currentExpression = (parseFloat(currentExpression) / 100).toString();
+                        resultEl.textContent = currentExpression;
+                    }
+                    break;
+                
+                default:
+                    // 数字/运算符：追加到表达式
+                    // 防止重复输入运算符（简单校验）
+                    const lastChar = currentExpression.slice(-1);
+                    const operators = ['+', '-', '*', '×', '/', '÷', '.'];
+                    if (operators.includes(key) && operators.includes(lastChar)) {
+                        return; // 重复运算符，不处理
+                    }
+                    
+                    currentExpression += key;
+                    resultEl.textContent = currentExpression;
+                    inputExpressionEl.textContent = ''; // 清空核对提示
+                    break;
+            }
+        }
+
+        // 优化移动端体验：禁止长按选中文本
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('touchstart', function(e) {
+                e.preventDefault(); // 防止触摸时的默认行为
+                this.click(); // 触发点击事件
+            });
+        });
+    </script>
+</body>
+</html>
